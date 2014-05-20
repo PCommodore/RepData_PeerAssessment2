@@ -1,0 +1,266 @@
+# Reproducible Research: Peer Assessment 2
+### R Markdown File by PCommodore
+
+## Impacts on Health and Economy Due to Adverse Weather in US
+
+## Synopsis
+
+This report presents the findings of the health and economy impacts due to adverse weather in the US from 1950 to 2011. 
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern. This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+## Data
+
+The data for this assignment come in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size. You can download the file from the course web site:
+
+* Storm Data [47Mb]
+
+There is also some documentation of the database available. Here you will find how some of the variables are constructed/defined.
+
+* National Weather Service Storm Data Documentation
+
+* National Climatic Data Center Storm Events FAQ
+
+## Data Processing 
+
+This section consists of the following steps:
+
+* 1.1 Load data into R as a data frame
+* 1.2 Reorganize data frame to comprise only relevant fields
+* 1.3 Match the appropriate units for fields relevant to economic impact
+* 1.4 Build data frames for sum of Fatalities, Injuires, Prop Dmg and Crop Dmg for top 20 Events 
+* 1.5 Build data frames for mean of Fatalities, Injuires, Prop Dmg and Crop Dmg for top 20 Events
+
+
+```r
+# 1.1
+data = read.csv("./repdata-data-StormData.csv")
+
+# 1.2
+data$EVTYPE = as.character(data$EVTYPE)
+data$PROPDMGEXP = as.character(data$PROPDMGEXP)
+data$CROPDMGEXP = as.character(data$CROPDMGEXP)
+
+reorgdata = data.frame(data$EVTYPE)
+reorgdata$Event = data$EVTYPE
+reorgdata$Fatalities = data$FATALITIES
+reorgdata$Injuries = data$INJURIES
+reorgdata$Propdmg = data$PROPDMG
+reorgdata$Propdmgexp = data$PROPDMGEXP
+reorgdata$Cropdmg = data$CROPDMG
+reorgdata$Cropdmgexp = data$CROPDMGEXP
+reorgdata = reorgdata[, 2:8]
+
+# 1.3
+
+# Initiate vectors for numeric exponents
+reorgdata$Propdmgunit = rep(0, nrow(reorgdata))
+reorgdata$Cropdmgunit = rep(0, nrow(reorgdata))
+
+# Initiate vectors for prop and prop dmg values
+reorgdata$Propdmgnum = rep(0, nrow(reorgdata))
+reorgdata$Cropdmgnum = rep(0, nrow(reorgdata))
+
+# Compute property damage Values
+reorgdata$Propdmgunit[grep("B", reorgdata$Propdmgexp)] = 9
+reorgdata$Propdmgunit[grep("M", reorgdata$Propdmgexp)] = 6
+reorgdata$Propdmgunit[grep("m", reorgdata$Propdmgexp)] = 6
+reorgdata$Propdmgunit[grep("K", reorgdata$Propdmgexp)] = 3
+reorgdata$Propdmgunit[grep("H", reorgdata$Propdmgexp)] = 2
+reorgdata$Propdmgunit[grep("h", reorgdata$Propdmgexp)] = 2
+
+reorgdata$Propdmgunit[grep("[0-9]", reorgdata$Propdmgexp)] = as.numeric(grep("[0-9]", 
+    reorgdata$Propdmgexp, value = TRUE))
+
+reorgdata$Propdmgunit[grep("[-?+ ]", reorgdata$Propdmgexp)] = 0
+
+reorgdata$Propdmgnum = reorgdata$Propdmg * 10^(reorgdata$Propdmgunit)
+
+# Compute crop damage values
+reorgdata$Cropdmgunit[grep("B", reorgdata$Cropdmgexp)] = 9
+reorgdata$Cropdmgunit[grep("M", reorgdata$Cropdmgexp)] = 6
+reorgdata$Cropdmgunit[grep("m", reorgdata$Cropdmgexp)] = 6
+reorgdata$Cropdmgunit[grep("K", reorgdata$Cropdmgexp)] = 3
+reorgdata$Cropdmgunit[grep("k", reorgdata$Cropdmgexp)] = 3
+reorgdata$Cropdmgunit[grep("H", reorgdata$Cropdmgexp)] = 2
+reorgdata$Cropdmgunit[grep("h", reorgdata$Cropdmgexp)] = 2
+
+reorgdata$Cropdmgunit[grep("[0-9]", reorgdata$Cropdmgexp)] = as.numeric(grep("[0-9]", 
+    reorgdata$Cropdmgexp, value = TRUE))
+
+reorgdata$Cropdmgunit[grep("[-?+ ]", reorgdata$Cropdmgexp)] = 0
+
+reorgdata$Cropdmgnum = reorgdata$Cropdmg * 10^(reorgdata$Cropdmgunit)
+
+# 1.4 Compute values by summing Fatalities by event (Sort in Descending
+# Order)
+fatbyevtsum = aggregate(Fatalities ~ Event, data = reorgdata, sum, na.rm = T)
+fatbyevtsum = fatbyevtsum[order(-fatbyevtsum$Fatalities), ]
+
+# Injuries by event (Sort in Descending Order)
+injbyevtsum = aggregate(Injuries ~ Event, data = reorgdata, sum, na.rm = T)
+injbyevtsum = injbyevtsum[order(-injbyevtsum$Injuries), ]
+
+# Property damage by event (Sort in Descending Order)
+Propbyevtsum = aggregate(Propdmgnum ~ Event, data = reorgdata, sum, na.rm = T)
+Propbyevtsum = Propbyevtsum[order(-Propbyevtsum$Propdmgnum), ]
+
+# Crop damage by event (Sort in Descending Order)
+Cropbyevtsum = aggregate(Cropdmgnum ~ Event, data = reorgdata, sum, na.rm = T)
+Cropbyevtsum = Cropbyevtsum[order(-Cropbyevtsum$Cropdmgnum), ]
+
+# 1.5 Compute values by averaging Fatalities by event (Sort in Descending
+# Order)
+fatbyevtavg = aggregate(Fatalities ~ Event, data = reorgdata, mean, na.rm = T)
+fatbyevtavg = fatbyevtavg[order(-fatbyevtavg$Fatalities), ]
+
+# Injuries by event (Sort in Descending Order)
+injbyevtavg = aggregate(Injuries ~ Event, data = reorgdata, mean, na.rm = T)
+injbyevtavg = injbyevtavg[order(-injbyevtavg$Injuries), ]
+
+# Property damage by event (Sort in Descending Order)
+Propbyevtavg = aggregate(Propdmgnum ~ Event, data = reorgdata, mean, na.rm = T)
+Propbyevtavg = Propbyevtavg[order(-Propbyevtavg$Propdmgnum), ]
+
+# Crop damage by event (Sort in Descending Order)
+Cropbyevtavg = aggregate(Cropdmgnum ~ Event, data = reorgdata, mean, na.rm = T)
+Cropbyevtavg = Cropbyevtavg[order(-Cropbyevtavg$Cropdmgnum), ]
+```
+
+
+## Results
+
+This section consists of the following steps:
+
+* 2.1 Present barplots for sum of fatalities and injuries for each top 20 event (Health Impacts)
+* 2.2 Present barplots for sum of property and crop damages for each top 20 event (Economic Impacts)
+* 2.3 Present barplots for avg of fatalities and injuries for each top 20 event (Health Impacts)
+* 2.4 Present barplots for avg of property and crop damages for each top 20 event
+(Economic Impacts)
+
+
+```r
+library(ggplot2)
+library(gridExtra)
+```
+
+```
+## Loading required package: grid
+```
+
+```r
+
+# 2.1 Summary 1a - Health Effects by Sum
+
+top20fatbyevtsum = head(fatbyevtsum, n = 20)
+
+plot1 = ggplot(top20fatbyevtsum, aes(x = Event, y = Fatalities)) + geom_bar(stat = "identity", 
+    fill = "red", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Fatalities") + ggtitle("Sum of Fatalities for Each Event Type")
+
+
+top20injbyevtsum = head(injbyevtsum, n = 20)
+
+plot2 = ggplot(top20injbyevtsum, aes(x = Event, y = Injuries)) + geom_bar(stat = "identity", 
+    fill = "red", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Injuries") + ggtitle("Sum of Injuries for Each Event Type")
+```
+
+
+
+```r
+# Figure1
+grid.arrange(plot1, plot2, ncol = 2)
+```
+
+![plot of chunk Figure 1](figure/Figure_1.png) 
+
+
+
+```r
+# 2.2 Summary 1b - Economic Effects by Sum
+
+top20Propbyevtsum = head(Propbyevtsum, n = 20)
+
+plot3 = ggplot(top20Propbyevtsum, aes(x = Event, y = Propdmgnum)) + geom_bar(stat = "identity", 
+    fill = "blue", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Economic Loss") + ggtitle("Sum of Property Damage for Each Event Type")
+
+
+top20Cropbyevtsum = head(Cropbyevtsum, n = 20)
+
+plot4 = ggplot(top20Cropbyevtsum, aes(x = Event, y = Cropdmgnum)) + geom_bar(stat = "identity", 
+    fill = "blue", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Economic Loss") + ggtitle("Sum of Crop Damage for Each Event Type")
+```
+
+
+
+```r
+# Figure 2
+grid.arrange(plot3, plot4, ncol = 2)
+```
+
+![plot of chunk Figure 2](figure/Figure_2.png) 
+
+
+
+```r
+# 2.3 Summary 2a - Health Effects by Avg
+
+top20fatbyevtavg = head(fatbyevtavg, n = 20)
+
+plot5 = ggplot(top20fatbyevtavg, aes(x = Event, y = Fatalities)) + geom_bar(stat = "identity", 
+    fill = "red", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Fatalities") + ggtitle("Avg of Fatalities for Each Event Type")
+
+
+top20injbyevtavg = head(injbyevtavg, n = 20)
+
+plot6 = ggplot(top20injbyevtavg, aes(x = Event, y = Injuries)) + geom_bar(stat = "identity", 
+    fill = "red", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Injuries") + ggtitle("Avg of Injuries for Each Event Type")
+```
+
+
+
+```r
+# 2.3 Summary 2b - Economic Effects by Avg
+
+top20Propbyevtavg = head(Propbyevtavg, n = 20)
+
+plot7 = ggplot(top20Propbyevtavg, aes(x = Event, y = Propdmgnum)) + geom_bar(stat = "identity", 
+    fill = "blue", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Economic Loss") + ggtitle("Avg of Property Damage for Each Event Type")
+
+
+top20Cropbyevtavg = head(Cropbyevtavg, n = 20)
+
+plot8 = ggplot(top20Cropbyevtavg, aes(x = Event, y = Cropdmgnum)) + geom_bar(stat = "identity", 
+    fill = "blue", las = 3) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+    xlab("Event Type") + ylab("Economic Loss") + ggtitle("Avg of Crop Damage for Each Event Type")
+```
+
+
+
+```r
+# Figure 3
+grid.arrange(plot5, plot6, plot7, plot8, nrow = 2, ncol = 2)
+```
+
+![plot of chunk Figure 3](figure/Figure_3.png) 
+
+
+## Conclusion
+
+### Total Health and Economic Impacts by Event Types
+* In terms of total fatalities and injuries, tornado has the largest health impact.
+* In terms of total property damages, flood has the largest economic impact.
+* In terms of total crop damages, drought has the largest economic impact.
+
+### Average Health and Economic Impacts by Event Types
+* In terms of average fatalities, tornado, tstm wind and hail have the largest health impact.
+* In  terms of average injuries, heat wave has the largest health impact.
+* In terms of average property damages, tornado, tstm and hail have the largest economic impact.
+* In terms of average crop damages, excessive wetness has the largest economic impact.
+
